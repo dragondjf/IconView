@@ -8,6 +8,7 @@ from .griditem import GridItem
 
 
 class GridManager(QObject):
+
     geometryChanged = pyqtSignal(QRect)
     gridWidthChanged = pyqtSignal(int)
     gridHeightChanged = pyqtSignal(int)

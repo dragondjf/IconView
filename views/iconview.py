@@ -6,7 +6,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from .gridmanager import FixedSpacingGridManager
-from .iconitem import IconItem
+from .itemmanager import ItemManager
 
 
 class IconViewCenterWidget(QFrame):
@@ -24,10 +24,12 @@ class IconViewCenterWidget(QFrame):
 
     def initData(self):
         self._gridManager = FixedSpacingGridManager()
-        self._tableItems = []
+        self._Items = []
 
     def initUI(self):
-        self.setStyleSheet(self.style)
+        self._gridManager.setGridParameters(100, 100, 10, 10, 10, 10, 10, 0)
+        # self.setStyleSheet(self.style)
+        pass
 
     def initConnect(self):
         pass
@@ -36,10 +38,10 @@ class IconViewCenterWidget(QFrame):
         return self._gridManager
 
     def items(self):
-        return self._tableItems
+        return self._Items
 
-    def addItems(self, items):
-        self._tableItems = items
+    def setItems(self, items):
+        self._Items = items
 
     def setGridParameters(self, gridWidth, gridHeight, xFixedSpacing, yFixedSpacing, leftMargin, topMargin, rightMargin, bottomMargin):
         self._gridManager.setGridParameters(gridWidth, gridHeight, xFixedSpacing, yFixedSpacing, leftMargin, topMargin, rightMargin, bottomMargin)
@@ -74,6 +76,9 @@ class IconViewCenterWidget(QFrame):
     def updateSize(self, width):
         if (self._gridManager.getAvaliableColumnCount(width) == self._gridManager.availableCount()):
             return
+        self.updateHeightByWidth(width)
+
+    def updateHeightByWidth(self, width):
         availableHeight = self._gridManager.getHeightByFixWidth(width, len(self.items()))
         self.setFixedSize(width, availableHeight)
         rect = QRect(0, 0, width , availableHeight)
@@ -94,7 +99,7 @@ class IconViewCenterWidget(QFrame):
                 item.setFixedSize(gridItem.size())
 
     def paintEvent(self, event):
-        if True:
+        if False:
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
             for gridItem in self._gridManager.getListItems():
@@ -115,7 +120,7 @@ class IconView(QScrollArea):
     requestChangeRightMargin = pyqtSignal(int)
     requestChangeBottomMargin = pyqtSignal(int)
     requestChangeMargins = pyqtSignal(int, int, int, int)
-    
+
 
     def __init__(self, parent=None):
         super(IconView, self).__init__(parent)
@@ -132,19 +137,12 @@ class IconView(QScrollArea):
 
     def initUI(self):
         self.centerWidget = IconViewCenterWidget(self)
+        self.initItemManager()
+        self.centerWidget.setItems(self.itemManager.items())
+
         self.setWidget(self.centerWidget)
         self.setMinimumSize(400, 400)
         self.resize(800, 600)
-
-        self.centerWidget.setGridParameters(100, 100, 10, 10, 10, 10, 10, 0)
-
-        self.tableItems = []
-        for i in range(200):
-            label = QPushButton("%d" % i, self.centerWidget)
-            label.setFixedSize(100, 100)
-            self.tableItems.append(label)
-
-        self.centerWidget.addItems(self.tableItems)
 
     def initConnect(self):
         self.requestChangeGridParameters.connect(self.updateViewByGridParameters)
@@ -157,6 +155,11 @@ class IconView(QScrollArea):
         self.requestChangeRightMargin.connect(self.updateViewByRightMargin)
         self.requestChangeBottomMargin.connect(self.updateViewByBottomMargin)
         self.requestChangeMargins.connect(self.updateViewByMargins)
+
+        self.itemManager.itemsChanged.connect(self.reLayoutItems)
+
+    def initItemManager(self):
+        self.itemManager = ItemManager(self.centerWidget)
 
     def updateViewByGridParameters(self, gridWidth, gridHeight, xFixedSpacing, yFixedSpacing, leftMargin, topMargin, rightMargin, bottomMargin):
         self.centerWidget.gridManager().setGridWidth(gridWidth)
@@ -207,3 +210,7 @@ class IconView(QScrollArea):
     def resizeEvent(self, event):
         self.centerWidget.updateSize(event.size().width())
         super(IconView, self).resizeEvent(event)
+
+    def reLayoutItems(self, items):
+        self.centerWidget.setItems(items)
+        self.centerWidget.updateHeightByWidth(self.width())
