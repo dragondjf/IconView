@@ -15,6 +15,8 @@ class IconViewCenterWidget(QFrame):
         QFrame{background-color: green};
     '''
 
+    heightChanged = pyqtSignal(int)
+
     def __init__(self, parent=None):
         super(IconViewCenterWidget, self).__init__(None)
         self.parent = parent
@@ -81,6 +83,7 @@ class IconViewCenterWidget(QFrame):
     def updateHeightByWidth(self, width):
         availableHeight = self._gridManager.getHeightByFixWidth(width, len(self.items()))
         self.setFixedSize(width, availableHeight)
+        self.heightChanged.emit(availableHeight)
         rect = QRect(0, 0, width , availableHeight)
         self.reLayoutItemsByRect(rect)
 
@@ -110,100 +113,104 @@ class IconViewCenterWidget(QFrame):
 
 class IconView(QScrollArea):
 
-    requestChangeGridParameters = pyqtSignal(int, int, int, int, int, int, int, int)
-    requestChangeGridWidth = pyqtSignal(int)
-    requestChangeGridHeight = pyqtSignal(int)
-    requestChangeXFixedSpacing = pyqtSignal(int)
-    requestChangeYFixedSpacing = pyqtSignal(int)
-    requestChangeLeftMargin= pyqtSignal(int)
-    requestChangeTopMargin = pyqtSignal(int)
-    requestChangeRightMargin = pyqtSignal(int)
-    requestChangeBottomMargin = pyqtSignal(int)
-    requestChangeMargins = pyqtSignal(int, int, int, int)
 
-
-    def __init__(self, parent=None):
+    def __init__(self, isVerticalBarAlwaysOff=False, parent=None):
         super(IconView, self).__init__(parent)
+        self._isVerticalBarAlwaysOff = isVerticalBarAlwaysOff
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        if self._isVerticalBarAlwaysOff:
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         self.initData()
         self.initUI()
         self.initConnect()
 
-        self.requestChangeXFixedSpacing.emit(40)
-        self.requestChangeGridParameters.emit(50, 50, 30, 30, 30, 30, 30, 0)
+        self.setGridParameters(100, 50, 30, 30, 30, 30, 30, 0)
 
     def initData(self):
         pass
 
     def initUI(self):
+        self.setMinimumSize(400, 400)
+        # self.resize(800, 600)
         self.centerWidget = IconViewCenterWidget(self)
         self.initItemManager()
-        self.centerWidget.setItems(self.itemManager.items())
+        self.setItems(self.itemManager.items())
 
         self.setWidget(self.centerWidget)
-        self.setMinimumSize(400, 400)
-        self.resize(800, 600)
+        
 
     def initConnect(self):
-        self.requestChangeGridParameters.connect(self.updateViewByGridParameters)
-        self.requestChangeXFixedSpacing.connect(self.updateViewByXFixedSpacing)
-        self.requestChangeYFixedSpacing.connect(self.updateViewByYFixedSpacing)
-        self.requestChangeGridWidth.connect(self.updateViewByGridWidth)
-        self.requestChangeGridHeight.connect(self.updateViewByGridHeight)
-        self.requestChangeLeftMargin.connect(self.updateViewByLeftMargin)
-        self.requestChangeTopMargin.connect(self.updateViewByTopMargin)
-        self.requestChangeRightMargin.connect(self.updateViewByRightMargin)
-        self.requestChangeBottomMargin.connect(self.updateViewByBottomMargin)
-        self.requestChangeMargins.connect(self.updateViewByMargins)
+        # self.requestChangeGridParameters.connect(self.setGridParameters)
+        # self.requestChangeXFixedSpacing.connect(self.setXFixedSpacing)
+        # self.requestChangeYFixedSpacing.connect(self.setYFixedSpacing)
+        # self.requestChangeGridWidth.connect(self.setGridWidth)
+        # self.requestChangeGridHeight.connect(self.setGridHeight)
+        # self.requestChangeLeftMargin.connect(self.setLeftMargin)
+        # self.requestChangeTopMargin.connect(self.setTopMargin)
+        # self.requestChangeRightMargin.connect(self.setRightMargin)
+        # self.requestChangeBottomMargin.connect(self.setBottomMargin)
+        # self.requestChangeMargins.connect(self.setMargins)
 
         self.itemManager.itemsChanged.connect(self.reLayoutItems)
 
     def initItemManager(self):
         self.itemManager = ItemManager(self.centerWidget)
 
-    def updateViewByGridParameters(self, gridWidth, gridHeight, xFixedSpacing, yFixedSpacing, leftMargin, topMargin, rightMargin, bottomMargin):
+    def setItems(self, items):
+        self.centerWidget.setItems(items)
+        if self._isVerticalBarAlwaysOff:
+            availableHeight = self.centerWidget.gridManager().getHeightByFixWidth(self.width(), len(self.items()))
+            self.setFixedHeight(availableHeight)
+        else:
+            pass
+
+    def items(self):
+        return self.centerWidget.items()
+
+    def setGridParameters(self, gridWidth, gridHeight, xFixedSpacing, yFixedSpacing, leftMargin, topMargin, rightMargin, bottomMargin):
         self.centerWidget.gridManager().setGridWidth(gridWidth)
         self.centerWidget.gridManager().setGridHeight(gridHeight)
         self.centerWidget.gridManager().setXFixedSpacing(xFixedSpacing)
         self.centerWidget.gridManager().setYFixedSpacing(yFixedSpacing)
-        self.updateViewByMargins(leftMargin, topMargin, rightMargin, bottomMargin)
+        self.setMargins(leftMargin, topMargin, rightMargin, bottomMargin)
 
-    def updateViewByMargins(self, leftMargin, topMargin, rightMargin, bottomMargin):
+    def setMargins(self, leftMargin, topMargin, rightMargin, bottomMargin):
         self.centerWidget.gridManager().setLeftMargin(leftMargin)
         self.centerWidget.gridManager().setTopMargin(topMargin)
         self.centerWidget.gridManager().setRightMargin(rightMargin)
         self.centerWidget.gridManager().setBottomMargin(bottomMargin)
         self.centerWidget.reLayoutItems()
 
-    def updateViewByGridWidth(self, gridWidth):
+    def setGridWidth(self, gridWidth):
         self.centerWidget.gridManager().setGridWidth(gridWidth)
         self.centerWidget.reLayoutItems()
 
-    def updateViewByGridHeight(self, gridHeight):
+    def setGridHeight(self, gridHeight):
         self.centerWidget.gridManager().setGridHeight(gridHeight)
         self.centerWidget.reLayoutItems()
     
-    def updateViewByXFixedSpacing(self, xFixedSpacing):
+    def setXFixedSpacing(self, xFixedSpacing):
         self.centerWidget.gridManager().setXFixedSpacing(xFixedSpacing)
         self.centerWidget.reLayoutItems()
 
-    def updateViewByYFixedSpacing(self, yFixedSpacing):
+    def setYFixedSpacing(self, yFixedSpacing):
         self.centerWidget.gridManager().setYFixedSpacing(yFixedSpacing)
         self.centerWidget.reLayoutItems()
 
-    def updateViewByLeftMargin(self, leftMargin):
+    def setLeftMargin(self, leftMargin):
         self.centerWidget.gridManager().setLeftMargin(leftMargin)
         self.centerWidget.reLayoutItems()
 
-    def updateViewByTopMargin(self, topMargin):
+    def setTopMargin(self, topMargin):
         self.centerWidget.gridManager().setTopMargin(topMargin)
         self.centerWidget.reLayoutItems()
 
-    def updateViewByRightMargin(self, rightMargin):
+    def setRightMargin(self, rightMargin):
         self.centerWidget.gridManager().setRightMargin(rightMargin)
         self.centerWidget.reLayoutItems()
 
-    def updateViewByBottomMargin(self, bottomMargin):
+    def setBottomMargin(self, bottomMargin):
         self.centerWidget.gridManager().setBottomMargin(bottomMargin)
         self.centerWidget.reLayoutItems()
 

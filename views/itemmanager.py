@@ -21,14 +21,14 @@ class ItemManager(QObject):
 
         self.timer = QTimer()
         self.index = 0
-        self.timer.setInterval(100)
+        self.timer.setInterval(1000)
         self.timer.timeout.connect(self.removeRandomItem)
         self.timer.start()
 
     def initData(self):
         self._items = []
         self._map_items = {}
-        for i in range(2000):
+        for i in range(100):
             key = "%d" % i
             iconItem = IconItem(key, self.parent())
             iconItem.setText(key)
